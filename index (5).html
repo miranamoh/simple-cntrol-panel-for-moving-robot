@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>Control Pad</title>
+<style>
+  body {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 30px 15px;
+    background: #fff;
+    font-family: Arial, Helvetica, sans-serif;
+    box-sizing: border-box;
+  }
+
+  h2 { margin: 10px 0 5px; }
+
+  .control-pad {
+    display: grid;
+    grid-template-columns: repeat(3, 120px);
+    grid-template-rows: repeat(3, 70px);
+    gap: 20px;
+    justify-items: center;
+    align-items: center;
+    direction: ltr;
+    margin-top: 15px;
+  }
+
+  .btn {
+    width: 100%;
+    height: 100%;
+    border: 2px solid #ccc;
+    border-radius: 12px;
+    background: #fff;
+    font-size: 18px;
+    font-weight: bold;
+    color: #222;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.2s ease;
+  }
+
+  .btn:hover { background: #f5f5f5; }
+  .btn.stop { border-color: red; }
+
+  .forward  { grid-column: 2; grid-row: 1; }
+  .left     { grid-column: 1; grid-row: 2; }
+  .stop     { grid-column: 2; grid-row: 2; }
+  .right    { grid-column: 3; grid-row: 2; }
+  .backward { grid-column: 2; grid-row: 3; }
+
+  #status {
+    margin-top: 25px;
+    font-size: 16px;
+    color: #444;
+  }
+
+  hr.divider {
+    width: 100%;
+    max-width: 500px;
+    border: none;
+    border-top: 1px solid #eee;
+    margin: 40px 0;
+  }
+
+  /* ---- قسم الصوت ---- */
+  .mic-btn {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: 2px solid #ccc;
+    background: #fff;
+    font-size: 40px;
+    cursor: pointer;
+    margin: 20px 0;
+    transition: 0.2s ease;
+  }
+
+  .mic-btn:hover { background: #f5f5f5; }
+
+  .mic-btn.recording {
+    border-color: red;
+    background: #ffecec;
+    animation: pulse 1s infinite;
+  }
+
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(255,0,0,0.4); }
+    70%  { box-shadow: 0 0 0 15px rgba(255,0,0,0); }
+    100% { box-shadow: 0 0 0 0 rgba(255,0,0,0); }
+  }
+
+  #transcript {
+    width: 100%;
+    max-width: 500px;
+    min-height: 80px;
+    border: 2px solid #ccc;
+    border-radius: 12px;
+    padding: 15px;
+    font-size: 18px;
+    color: #222;
+    box-sizing: border-box;
+  }
+
+  #voiceStatus {
+    margin-top: 15px;
+    font-size: 15px;
+    color: #444;
+  }
+
+  .history {
+    width: 100%;
+    max-width: 500px;
+    margin-top: 30px;
+  }
+
+  .history h3 {
+    font-size: 16px;
+    color: #555;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+  }
+
+  .history ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 250px;
+    overflow-y: auto;
+  }
+
+  .history li {
+    padding: 8px 10px;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 14px;
+  }
+
+  .history li span {
+    display: block;
+    color: #999;
+    font-size: 12px;
+  }
+
+  .lang-select {
+    margin-bottom: 10px;
+    font-size: 14px;
+  }
+</style>
+</head>
+<body>
+
+  <!-- ==== قسم التحكم بالروبوت ==== -->
+  <h2>لوحة التحكم بالروبوت</h2>
+
+  <div class="control-pad">
+    <button class="btn forward"  onclick="sendCommand('forward')">forward</button>
+    <button class="btn left"     onclick="sendCommand('left')">left</button>
+    <button class="btn stop"     onclick="sendCommand('stop')">stop</button>
+    <button class="btn right"    onclick="sendCommand('right')">right</button>
+    <button class="btn backward" onclick="sendCommand('backward')">backward</button>
+  </div>
+
+  <div id="status">جاهز</div>
+
+  <hr class="divider">
+
+  <!-- ==== قسم تحويل الصوت لنص ==== -->
+  <h2>تحويل الصوت إلى نص</h2>
+
+  <div class="lang-select">
+    اللغة:
+    <select id="langSelect">
+      <option value="ar-SA">العربية</option>
+      <option value="en-US">English</option>
+    </select>
+  </div>
+
+  <button id="micBtn" class="mic-btn">🎤</button>
+
+  <div id="transcript">اضغط الميكروفون وابدأ الكلام...</div>
+
+  <div id="voiceStatus">جاهز</div>
+
+  
+
+  <script>
+    // ---------- قسم التحكم بالروبوت ----------
+    function sendCommand(cmd) {
+      document.getElementById('status').innerText = 'جاري الإرسال...';
+
+      fetch('update_command.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'command=' + encodeURIComponent(cmd)
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 'success') {
+          document.getElementById('status').innerText =
+            'تم تحديث الجدول: ' + data.button + ' -> "' + data.stored_as + '"';
+        } else {
+          document.getElementById('status').innerText = 'خطأ: ' + data.message;
+        }
+      })
+      .catch(err => {
+        document.getElementById('status').innerText = 'فشل الاتصال بالسيرفر';
+      });
+    }
+
+    // ---------- قسم تحويل الصوت لنص ----------
+    const micBtn       = document.getElementById('micBtn');
+    const transcriptEl  = document.getElementById('transcript');
+    const voiceStatusEl = document.getElementById('voiceStatus');
+    const langSelect    = document.getElementById('langSelect');
+    const historyList   = document.getElementById('historyList');
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      voiceStatusEl.innerText = 'المتصفح ده ما يدعم تحويل الصوت لنص. جرّب Google Chrome.';
+      micBtn.disabled = true;
+    }
+
+    let recognition = null;
+    let isRecording = false;
+
+    function createRecognition() {
+      const r = new SpeechRecognition();
+      r.lang = langSelect.value;
+      r.continuous = false;
+      r.interimResults = true;
+
+      r.onstart = () => {
+        isRecording = true;
+        micBtn.classList.add('recording');
+        voiceStatusEl.innerText = 'جاري الاستماع...';
+      };
+
+      r.onresult = (event) => {
+        let finalText = '';
+        let interimText = '';
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const piece = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalText += piece;
+          } else {
+            interimText += piece;
+          }
+        }
+
+        if (finalText) {
+          transcriptEl.innerText = finalText;
+          saveText(finalText);
+          handleVoiceCommand(finalText);
+        } else if (interimText) {
+          transcriptEl.innerText = interimText;
+        }
+      };
+
+      r.onerror = (event) => {
+        voiceStatusEl.innerText = 'خطأ في التسجيل: ' + event.error;
+      };
+
+      r.onend = () => {
+        isRecording = false;
+        micBtn.classList.remove('recording');
+        if (voiceStatusEl.innerText === 'جاري الاستماع...') {
+          voiceStatusEl.innerText = 'توقف الاستماع';
+        }
+      };
+
+      return r;
+    }
+
+    micBtn.addEventListener('click', () => {
+      if (isRecording) {
+        recognition.stop();
+        return;
+      }
+      recognition = createRecognition();
+      recognition.start();
+    });
+
+    // خريطة الكلمات المفتاحية (عربي/إنجليزي) لكل أمر
+    const commandKeywords = {
+      forward:  ['قدام', 'للامام', 'أمام', 'روح', 'forward', 'go'],
+      backward: ['خلف', 'للخلف', 'ورا', 'رجوع', 'backward', 'back'],
+      left:     ['يسار', 'شمال', 'left'],
+      right:    ['يمين', 'right'],
+      stop:     ['قف', 'وقف', 'توقف', 'استوب', 'stop']
+    };
+
+    // توحيد أشكال الحروف العربية المتشابهة (همزات، تاء مربوطة، تشكيل)
+    function normalizeArabic(text) {
+      return text
+        .replace(/[إأآا]/g, 'ا')
+        .replace(/ى/g, 'ي')
+        .replace(/ة/g, 'ه')
+        .replace(/[ًٌٍَُِّْـ]/g, '')
+        .trim()
+        .toLowerCase();
+    }
+
+    function detectCommand(text) {
+      const normalized = normalizeArabic(text);
+      for (const cmd in commandKeywords) {
+        for (const keyword of commandKeywords[cmd]) {
+          if (normalized.includes(normalizeArabic(keyword))) {
+            return cmd;
+          }
+        }
+      }
+      return null;
+    }
+
+    function handleVoiceCommand(text) {
+      const matchedCmd = detectCommand(text);
+      if (matchedCmd) {
+        voiceStatusEl.innerText = 'تم التعرف على أمر: ' + matchedCmd + ' — جاري التنفيذ...';
+        sendCommand(matchedCmd);
+      }
+    }
+
+    function saveText(text) {
+      voiceStatusEl.innerText = 'جاري الحفظ...';
+
+      fetch('save_voice.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'text=' + encodeURIComponent(text)
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 'success') {
+          voiceStatusEl.innerText = 'تم الحفظ بنجاح';
+          loadHistory();
+        } else {
+          voiceStatusEl.innerText = 'خطأ: ' + data.message;
+        }
+      })
+      .catch(() => {
+        voiceStatusEl.innerText = 'فشل الاتصال بالسيرفر';
+      });
+    }
+
+    function loadHistory() {
+      fetch('get_voice_history.php')
+        .then(res => res.json())
+        .then(rows => {
+          historyList.innerHTML = '';
+          rows.forEach(row => {
+            const li = document.createElement('li');
+            li.innerHTML = row.text_content + '<span>' + row.created_at + '</span>';
+            historyList.appendChild(li);
+          });
+        })
+        .catch(() => {});
+    }
+
+    loadHistory();
+  </script>
+
+</body>
+</html>
+
