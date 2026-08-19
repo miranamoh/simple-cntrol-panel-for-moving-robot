@@ -10,7 +10,9 @@ This project has three parts:
 2. **Voice-to-Text Interface** — uses the browser's built-in Web Speech API to convert spoken words into text, live, with no external API or key required.
 3. **Voice Command Execution** — recognized speech is matched against a set of keywords (forward/backward/left/right/stop, in Arabic and English). If a match is found, the same command is sent as if a button were pressed. 
 
-Everything lives on a single page (`index.html`): the control pad on top, the voice section below it.
+Everything lives on a single page (`index.html`): the control pad on top, the voice section below it. 
+
+ <img width="662" height="846" alt="image" src="https://github.com/user-attachments/assets/f387eba9-ad93-48b0-a703-bc5d32cd4f25" />
 
 ---
 
